@@ -1,0 +1,17 @@
+extends layout
+
+block layout-content
+	div.View
+		h1.Banner WHATABBYTE
+		div.Message
+			div.Title
+				h3 Making the Best
+				h1 Food for Devs
+			span.Details Access the WHATABYTE Team Portal
+		div.NavButtons
+			if isAuthenticated
+				a(href="/user")
+					div.NavButton Just Dive in!
+			else
+				a(href="/login")
+					div.NavButton Log in
