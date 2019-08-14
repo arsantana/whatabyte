@@ -1,15 +1,81 @@
-// Imports and app instance 
+// Imports 
+require("dotenv").config();
 
 const path = require("path");
 const express = require("express");
+const expressSession = require("express-session");
 
+// App instance 
 const app = express();
+
+// Port Declaration
 const port = process.env.PORT || "8000";
+
+const session = {
+  secret: "LoxodontaElephasMammuthusPalaeoloxodonPrimelephas",
+  cookie: {},
+  resave: false,
+  saveUninitialized: false
+};
+
+if (app.get("env") === "production") {
+  session.cookie.secure = true; // Serve secure cookies, requires HTTPS
+}
+
+app.use(expressSession(session));
+
+const passport = require("passport");
+const Auth0Strategy = require("passport-auth0");
+const authRouter = require("./auth");
+
+const strategy = new Auth0Strategy(
+	{
+		domain: process.env.AUTH0_DOMAIN,
+		clientID: process.env.AUTH0_CLIENT_ID,
+		clientSecret: process.env.AUTH0_CLIENT_SECRET,
+		callbackURL:
+			process.env.AUTH0_CALLBACK_URL || "http://localhost:3000/callback"
+	},
+	function(accessToken, refreshToken, extraParams, profile, done) {
+		/**
+     * Access tokens are used to authorize users to an API 
+     * (resource server)
+     * accessToken is the token to call the Auth0 API 
+     * or a secured third-party API
+     * extraParams.id_token has the JSON Web Token
+     * profile has all the information from the user
+     */
+		return done(null, profile);
+	}
+
+)
+
+app.use(expressSession(session));
+passport.use(strategy);
+app.use(passport.initialize());
+app.use(passport.session());
+
+passport.serializeUser((user, done) => {
+	done(null, user);
+});
+
+passport.deserializeUser((user, done) => {
+	done(null, user);
+});
+
+//Express App Settings
 
 app.set("views", path.join(__dirname, "views"));
 app.set("view engine", "pug");
 app.use(express.static(path.join(__dirname, "public")));
 
+app.use((req, res, next) => {
+	res.locals.isAuthenticated = req.isAuthenticated();
+	next();
+});
+
+//Mount auth router
+app.use("/", authRouter);
 // Route Controllers
 
 app.get("/", (req, res) => {
@@ -20,9 +86,7 @@ app.get("/user", (req, res) => {
 	res.render("user", { title: "Profile", userProfile: { nickname: "Auth0" } });
 });
 
-// app.get("/", (req, res) => {
-// 	res.status(200).send("WHATABYTE: Food for Devs");
-// });
+// App Listening
 
 app.listen(port, () => {
 	console.log(`Listening to requests on http://localhost:${port}`);
