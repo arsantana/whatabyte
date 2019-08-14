@@ -69,6 +69,7 @@ app.set("views", path.join(__dirname, "views"));
 app.set("view engine", "pug");
 app.use(express.static(path.join(__dirname, "public")));
 
+
 app.use((req, res, next) => {
 	res.locals.isAuthenticated = req.isAuthenticated();
 	next();
@@ -76,14 +77,30 @@ app.use((req, res, next) => {
 
 //Mount auth router
 app.use("/", authRouter);
+
+//Accessing guarded routes
+
+const secured = (req, res, next) => {
+	if (req.user) {
+		return next();
+	}
+
+	req.session.returnTo = req.originalUrl;
+	res.redirect("/login");
+};
+
 // Route Controllers
 
 app.get("/", (req, res) => {
 	res.render("index", { title: "Home" });
 });
 
-app.get("/user", (req, res) => {
-	res.render("user", { title: "Profile", userProfile: { nickname: "Auth0" } });
+app.get("/user", secured, (req, res, next) => {
+	const { _raw, _json, ...userProfile } = req.user;
+	res.render("user", { 
+		title: "Profile", 
+		userProfile: userProfile 
+	});
 });
 
 // App Listening
